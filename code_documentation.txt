@@ -1,0 +1,44 @@
+finding the maximum clique in a given DIMACS-format graph using branch and 
+bound algorithm. Here is a brief explanation of the different parts of the 
+script:
+
+The read_dimacs_graph() function reads in the graph from the specified 
+DIMACS-format file and returns it as a networkx graph object.
+
+The greedy_clique_heuristic() function implements a greedy search 
+algorithm for finding a clique, starting with the node of highest degree 
+and iteratively adding its neighbors to the clique. This function is used 
+as an initial heuristic to find a lower bound on the maximum clique size.
+
+The greedy_coloring_heuristic() function implements a greedy graph 
+coloring algorithm with a degree order rule. It returns the number of 
+colors used to color the graph. This function is used to find an upper 
+bound on the maximum clique size.
+
+The bronk() function implements the Bron-Kerbosch algorithm, a recursive 
+algorithm for finding all maximal cliques in a graph. It takes in a graph, 
+a set P of potential nodes to add to the current clique, a set R of nodes 
+already in the current clique, and a set X of nodes already excluded from 
+the current clique. It returns a generator object that generates all 
+maximal cliques in the graph.
+
+The branching() function takes in a graph and the current maximum clique 
+size found so far, and returns two smaller graphs obtained by removing 
+nodes from the original graph. The removed nodes are chosen according to a 
+branching strategy that is based on the node degrees.
+
+The bb_maximum_clique() function implements the branch and bound algorithm 
+for finding the maximum clique in a graph. It uses the Bron-Kerbosch 
+algorithm to find all maximal cliques, and prunes the search tree using 
+the lower and upper bounds obtained from the greedy clique and coloring 
+heuristics. The function returns the maximum clique found.
+
+The TimeoutException exception is raised when the execution time of the 
+algorithm exceeds the specified time limit.
+
+The arguments() function parses command line arguments and returns an 
+argparse object.
+
+The script also includes a timing() decorator and a time_limit() context 
+manager for measuring the execution time of the algorithm and enforcing a 
+time limit on the execution, respectively.
