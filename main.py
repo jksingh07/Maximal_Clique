@@ -1,9 +1,10 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+## SOLVING MAX CLIQUE PROBLEM USING BRANCH AND BOUND METHOD
+
+# This is an implementation of the branch and bound method to solve the maximum clique problem. 
+# The algorithm reads a graph file in the DIMACS format and tries to find the maximum clique in the graph.
+
 '''
 Find maxumum clique in given dimacs-format graph
-based on:
-http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 '''
 import os
 import sys
@@ -15,12 +16,16 @@ from openpyxl import Workbook
 import networkx as nx
 
 
+
+
+# The TimeoutException is a custom exception class that is used to raise an exception 
+# if the algorithm takes more than a specified amount of time to execute.
 class TimeoutException(Exception):
     pass
 
-
+# The timer function is a context manager that is used to set a time limit on the execution of the algorithm.
 @contextmanager
-def time_limit(seconds):
+def timer(seconds):
     timer = threading.Timer(seconds, lambda: _thread.interrupt_main())
     timer.start()
     try:
@@ -30,8 +35,8 @@ def time_limit(seconds):
     finally:
         timer.cancel()
 
-
-def timing(f):
+# The capture_time_consumed is a decorator function that is used to measure the time of the function execution.
+def capture_time_consumed(f):
     '''
     Measures time of function execution
     '''
@@ -44,8 +49,20 @@ def timing(f):
         return (ret, '{0:.3f} ms'.format((time2 - time1) * 1000.0))
     return wrap
 
+# The arguments function is used to parse the command line arguments passed to the script.
+def arguments():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Compute maximum clique for a graph')
+    parser.add_argument('--path', type=str, required=True,
+                        help='Path to dimacs-format graph file')
+    parser.add_argument('--time', type=int, default=60,
+                        help='Time limit in seconds')
+    parser.add_argument('--test', type=str, default=None, required=False)
+    return parser.parse_args()
 
-def read_dimacs_graph(file_path):
+# The dimacs_graph function reads the graph file in the DIMACS format and returns a graph object.
+def dimacs_graph(file_path):
     '''
         Parse .col file and return graph object
     '''
@@ -66,33 +83,22 @@ def read_dimacs_graph(file_path):
         return nx.Graph(edges)
 
 
-def arguments():
-    import argparse
-    parser = argparse.ArgumentParser(
-        description='Compute maximum clique for a graph')
-    parser.add_argument('--path', type=str, required=True,
-                        help='Path to dimacs-format graph file')
-    parser.add_argument('--time', type=int, default=60,
-                        help='Time limit in seconds')
-    parser.add_argument('--test', type=str, default=None, required=False)
-    return parser.parse_args()
-
-
-def bronk(graph, P, R=set(), X=set()):
+# The bronk_algorithm function is an implementation of the Bron–Kerbosch algorithm for finding all maximal cliques in a graph.
+def bronk_algorithm(graph, P, R=set(), X=set()):
     '''
     Implementation of Bron–Kerbosch algorithm for finding all maximal cliques in graph
     '''
     if not any((P, X)):
         yield R
     for node in P.copy():
-        for r in bronk(graph, P.intersection(graph.neighbors(node)),
+        for r in bronk_algorithm(graph, P.intersection(graph.neighbors(node)),
                        R=R.union(node), X=X.intersection(graph.neighbors(node))):
             yield r
         P.remove(node)
         X.add(node)
 
-
-def greedy_clique_heuristic(graph):
+# The greedy_clique_heuristic_method function is a greedy search for cliques by iterating through nodes with the highest degree and filtering only their neighbors.
+def greedy_clique_heuristic_method(graph):
     '''
     Greedy search for clique iterating by nodes 
     with highest degree and filter only neighbors 
@@ -107,8 +113,8 @@ def greedy_clique_heuristic(graph):
         nodes = list(filter(lambda x: x in neigh, nodes))
     return K
 
-
-def greedy_coloring_heuristic(graph):
+# The greedy_coloring_heuristic_method function is a greedy graph coloring heuristic with the degree order rule.
+def greedy_coloring_heuristic_method(graph):
     '''
     Greedy graph coloring heuristic with degree order rule
     '''
@@ -131,10 +137,10 @@ def greedy_coloring_heuristic(graph):
             color_map[node] = next(iter(used_colors - neighbors_colors))
     return len(used_colors)
 
-
-def branching(graph, cur_max_clique_len):
+# The branching_method function is the branching method procedure.
+def branching_method(graph, cur_max_clique_len):
     '''
-    Branching procedure
+    branching_method procedure
     '''
     g1, g2 = graph.copy(), graph.copy()
     max_node_degree = len(graph) - 1
@@ -154,24 +160,31 @@ def branching(graph, cur_max_clique_len):
     return g1, g2
 
 
-def bb_maximum_clique(graph):
-    max_clique = greedy_clique_heuristic(graph)
-    chromatic_number = greedy_coloring_heuristic(graph)
+'''
+The branch_bound_maximum_clique function is the main function that implements the branch and bound algorithm. 
+It uses the Bron–Kerbosch algorithm and the greedy clique and graph coloring heuristics to find the maximum clique in the graph.
+The function starts with the graph, removes nodes that are not in a maximal clique, and creates two subgraphs. 
+Then, it recursively applies the procedure to each subgraph until it finds the maximum clique. 
+The function returns the maximum clique and the chromatic number of the graph.
+'''
+def branch_bound_maximum_clique(graph):
+    max_clique = greedy_clique_heuristic_method(graph)
+    chromatic_number = greedy_coloring_heuristic_method(graph)
     if len(max_clique) == chromatic_number:
         return max_clique
     else:
-        g1, g2 = branching(graph, len(max_clique))
-        return max(bb_maximum_clique(g1), bb_maximum_clique(g2), key=lambda x: len(x))
+        g1, g2 = branching_method(graph, len(max_clique))
+        return max(branch_bound_maximum_clique(g1), branch_bound_maximum_clique(g2), key=lambda x: len(x))
     
-# def bb_maximum_clique(graph):
-#     max_clique = greedy_clique_heuristic(graph)
+# def branch_bound_maximum_clique(graph):
+#     max_clique = greedy_clique_heuristic_method(graph)
 #     q = [graph]
 #     while len(q) != 0:
 #         graph = q.pop(0)
-#         for g in branching(graph, len(max_clique)):
-#             with time_limit(2):
+#         for g in branching_method(graph, len(max_clique)):
+#             with timer(2):
 #                 try:
-#                     cliques = list(bronk(g, set(g.nodes())))
+#                     cliques = list(bronk_algorithm(g, set(g.nodes())))
 #                 except TimeoutException:
 #                     continue
 #             for c in cliques:
@@ -182,31 +195,32 @@ def bb_maximum_clique(graph):
 
 
 
-@timing
-def get_max_clique(graph):
-    return bb_maximum_clique(graph)
+# returns the max clique using branch and bound method.
+@capture_time_consumed
+def fetch_max_clique(graph):
+    return branch_bound_maximum_clique(graph)
 
-
-def get_files_size_ordered(dirpath):
+# return the file size in a sorted order
+def fetch_FilesSize(dirpath):
     return sorted((os.path.join(basedir, filename)
                    for basedir, dirs, files in os.walk(dirpath) for filename in files),
                   key=os.path.getsize)
 
-
-def run_test(args):
+# It will iterate through all clq files given in the path directory and perform branch and bound method on all to find maximal cliques
+def run_test_cases(args):
     import pandas as pd
     test_results = pd.DataFrame(
         columns=['filename', 'nodes', 'edges', 'clique', 'clique length', 'time'])
-    files = get_files_size_ordered(args.test)
+    files = fetch_FilesSize(args.test)
     try:
         for f in files:
-            graph = read_dimacs_graph(f)
+            graph = dimacs_graph(f)
             try:
-                with time_limit(args.time):
-                    max_clq = get_max_clique(graph)
+                with timer(args.time):
+                    max_cliques = fetch_max_clique(graph)
                     test_results = test_results.append({'filename': f, 'nodes': graph.number_of_nodes(),
-                                                        'edges': graph.number_of_edges(), 'clique': str(max_clq[0]),
-                                                        'clique length': len(max_clq[0]), 'time': max_clq[1]},
+                                                        'edges': graph.number_of_edges(), 'clique': str(max_cliques[0]),
+                                                        'clique length': len(max_cliques[0]), 'time': max_cliques[1]},
                                                        ignore_index=True)
                     test_results.to_excel('test_results.xlsx')
             except TimeoutException:
@@ -222,13 +236,13 @@ def main():
     args = arguments()
 
     if args.test:
-        run_test(args)
+        run_test_cases(args)
     else:
-        graph = read_dimacs_graph(args.path)
+        graph = dimacs_graph(args.path)
         try:
-            with time_limit(args.time):
-                max_clq = get_max_clique(graph)
-                print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
+            with timer(args.time):
+                max_cliques = fetch_max_clique(graph)
+                print('\nMaximum clique', max_cliques, '\nlen:', len(max_cliques))
         except TimeoutException:
             print("Timed out!")
             sys.exit(0)
